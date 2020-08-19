@@ -21,6 +21,7 @@ import (
 	"github.com/tsuru/tsuru/event"
 	appTypes "github.com/tsuru/tsuru/types/app"
 	provTypes "github.com/tsuru/tsuru/types/provision"
+	routerTypes "github.com/tsuru/tsuru/types/router"
 )
 
 const (
@@ -386,9 +387,17 @@ type LogsProvisioner interface {
 	WatchLogs(app appTypes.App, args appTypes.ListLogArgs) (appTypes.LogWatcher, error)
 }
 
+type RouterOptions struct {
+	App          appTypes.App
+	RouterKind   string
+	RouterConfig routerTypes.ConfigGetter
+	InstanceOpts map[string]string
+}
+
 // Routable Provisioner is an provisioner that owns  owned model of routing
 type RoutableProvisioner interface {
-	EnsureRouter(app appTypes.App, routerType string, opts map[string]string) error
+	CreateRouter(opts RouterOptions) error
+	UpdateRouter(opts RouterOptions) error
 }
 
 // SleepableProvisioner is a provisioner that allows putting applications to

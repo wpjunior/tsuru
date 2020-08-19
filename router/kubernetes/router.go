@@ -41,11 +41,13 @@ func init() {
 func createRouter(routerName string, config routerTypes.ConfigGetter) (router.Router, error) {
 	return &loadbalancerRouter{
 		routerName: routerName,
+		config:     config,
 	}, nil
 }
 
 type loadbalancerRouter struct {
 	routerName string
+	config     routerTypes.ConfigGetter
 }
 
 func (r *loadbalancerRouter) AddBackend(app appTypes.App) (err error) {
@@ -105,5 +107,10 @@ func (r *loadbalancerRouter) ensureBackend(app appTypes.App, opts map[string]str
 		return errNotSupported
 	}
 
-	return routableProvisioner.EnsureRouter(app, "loadbalancer", opts)
+	return routableProvisioner.EnsureRouter(provision.EnsureRouterOptions{
+		App:          app,
+		RouterKind:   "loadbalancer",
+		RouterConfig: r.config,
+		InstanceOpts: opts,
+	})
 }
