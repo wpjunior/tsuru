@@ -358,13 +358,6 @@ func RunServer(dry bool) http.Handler {
 	m.Add("1.0", http.MethodGet, "/healthcheck/", http.HandlerFunc(healthcheck))
 	m.Add("1.0", http.MethodGet, "/healthcheck", http.HandlerFunc(healthcheck))
 
-	m.Add("1.0", http.MethodGet, "/iaas/machines", AuthorizationRequiredHandler(machinesList))
-	m.Add("1.0", http.MethodDelete, "/iaas/machines/{machine_id}", AuthorizationRequiredHandler(machineDestroy))
-	m.Add("1.0", http.MethodGet, "/iaas/templates", AuthorizationRequiredHandler(templatesList))
-	m.Add("1.0", http.MethodPost, "/iaas/templates", AuthorizationRequiredHandler(templateCreate))
-	m.Add("1.0", http.MethodPut, "/iaas/templates/{template_name}", AuthorizationRequiredHandler(templateUpdate))
-	m.Add("1.0", http.MethodDelete, "/iaas/templates/{template_name}", AuthorizationRequiredHandler(templateDestroy))
-
 	m.Add("1.0", http.MethodGet, "/plans", AuthorizationRequiredHandler(listPlans))
 	m.Add("1.0", http.MethodPost, "/plans", AuthorizationRequiredHandler(addPlan))
 	m.Add("1.0", http.MethodDelete, "/plans/{planname}", AuthorizationRequiredHandler(removePlan))
@@ -426,10 +419,6 @@ func RunServer(dry bool) http.Handler {
 	m.Add("1.2", http.MethodPost, "/nodecontainers/{name}", AuthorizationRequiredHandler(nodeContainerUpdate))
 	m.Add("1.2", http.MethodPost, "/nodecontainers/{name}/upgrade", AuthorizationRequiredHandler(nodeContainerUpgrade))
 
-	m.Add("1.2", http.MethodPost, "/install/hosts", AuthorizationRequiredHandler(installHostAdd))
-	m.Add("1.2", http.MethodGet, "/install/hosts", AuthorizationRequiredHandler(installHostList))
-	m.Add("1.2", http.MethodGet, "/install/hosts/{name}", AuthorizationRequiredHandler(installHostInfo))
-
 	m.Add("1.3", http.MethodGet, "/routers", AuthorizationRequiredHandler(listRouters))
 	m.Add("1.8", http.MethodPost, "/routers", AuthorizationRequiredHandler(addRouter))
 	m.Add("1.8", http.MethodPut, "/routers/{name}", AuthorizationRequiredHandler(updateRouter))
@@ -463,16 +452,6 @@ func RunServer(dry bool) http.Handler {
 	m.Add("1.7", http.MethodPost, "/brokers", AuthorizationRequiredHandler(serviceBrokerAdd))
 	m.Add("1.7", http.MethodPut, "/brokers/{broker}", AuthorizationRequiredHandler(serviceBrokerUpdate))
 	m.Add("1.7", http.MethodDelete, "/brokers/{broker}", AuthorizationRequiredHandler(serviceBrokerDelete))
-
-	// Handlers for compatibility reasons, should be removed on tsuru 2.0.
-	m.Add("1.4", http.MethodPost, "/teams/{name}", AuthorizationRequiredHandler(updateTeam))
-	m.Add("1.0", http.MethodGet, "/docker/node", AuthorizationRequiredHandler(listNodesHandler))
-	m.Add("1.0", http.MethodGet, "/docker/node/apps/{appname}/containers", AuthorizationRequiredHandler(listUnitsByApp))
-	m.Add("1.0", http.MethodGet, "/docker/node/{address:.*}/containers", AuthorizationRequiredHandler(listUnitsByNode))
-	m.Add("1.0", http.MethodPost, "/docker/node", AuthorizationRequiredHandler(addNodeHandler))
-	m.Add("1.0", http.MethodPut, "/docker/node", AuthorizationRequiredHandler(updateNodeHandler))
-	m.Add("1.0", http.MethodDelete, "/docker/node/{address:.*}", AuthorizationRequiredHandler(removeNodeHandler))
-	m.Add("1.0", http.MethodPost, "/docker/containers/rebalance", AuthorizationRequiredHandler(rebalanceNodesHandler))
 
 	m.Add("1.0", http.MethodGet, "/docker/nodecontainers", AuthorizationRequiredHandler(nodeContainerList))
 	m.Add("1.0", http.MethodPost, "/docker/nodecontainers", AuthorizationRequiredHandler(nodeContainerCreate))

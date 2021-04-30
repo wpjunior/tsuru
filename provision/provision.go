@@ -467,7 +467,6 @@ type HCProvisioner interface {
 }
 
 type AddNodeOptions struct {
-	IaaSID     string
 	Address    string
 	Pool       string
 	Metadata   map[string]string
@@ -604,7 +603,6 @@ type AutoScaleProvisioner interface {
 
 type Node interface {
 	Pool() string
-	IaaSID() string
 	Address() string
 	Status() string
 
@@ -634,7 +632,6 @@ type NodeHealthChecker interface {
 type NodeSpec struct {
 	// BSON tag for bson serialized compatibility with cluster.Node
 	Address     string `bson:"_id"`
-	IaaSID      string
 	Metadata    map[string]string
 	Status      string
 	Pool        string
@@ -658,7 +655,6 @@ func NodeToSpec(n Node) NodeSpec {
 	}
 	return NodeSpec{
 		Address:     n.Address(),
-		IaaSID:      n.IaaSID(),
 		Metadata:    metadata,
 		Status:      n.Status(),
 		Pool:        n.Pool(),

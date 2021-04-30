@@ -985,7 +985,7 @@ func (p *kubernetesProvisioner) GetNode(ctx context.Context, address string) (pr
 	return node, nil
 }
 
-func setNodeMetadata(node *apiv1.Node, pool, iaasID string, meta map[string]string) {
+func setNodeMetadata(node *apiv1.Node, pool string, meta map[string]string) {
 	if node.Labels == nil {
 		node.Labels = map[string]string{}
 	}
@@ -1007,7 +1007,6 @@ func setNodeMetadata(node *apiv1.Node, pool, iaasID string, meta map[string]stri
 		node.Annotations[k] = v
 	}
 	baseNodeLabels := provision.NodeLabels(provision.NodeLabelsOpts{
-		IaaSID: iaasID,
 		Pool:   pool,
 		Prefix: tsuruLabelPrefix,
 	})
@@ -1053,7 +1052,7 @@ func (p *kubernetesProvisioner) AddNode(ctx context.Context, opts provision.AddN
 				Name: hostAddr,
 			},
 		}
-		setNodeMetadata(node, opts.Pool, opts.IaaSID, opts.Metadata)
+		setNodeMetadata(node, opts.Pool, opts.Metadata)
 		_, err = client.CoreV1().Nodes().Create(ctx, node, metav1.CreateOptions{})
 		if err == nil {
 			return nil
@@ -1066,7 +1065,7 @@ func (p *kubernetesProvisioner) AddNode(ctx context.Context, opts provision.AddN
 		Address:  hostAddr,
 		Metadata: opts.Metadata,
 		Pool:     opts.Pool,
-	}, opts.IaaSID)
+	})
 }
 
 func (p *kubernetesProvisioner) RemoveNode(ctx context.Context, opts provision.RemoveNodeOptions) error {
@@ -1147,16 +1146,13 @@ func (p *kubernetesProvisioner) findNodeByAddress(ctx context.Context, address s
 }
 
 func (p *kubernetesProvisioner) UpdateNode(ctx context.Context, opts provision.UpdateNodeOptions) error {
-	return p.internalNodeUpdate(ctx, opts, "")
+	return p.internalNodeUpdate(ctx, opts)
 }
 
-func (p *kubernetesProvisioner) internalNodeUpdate(ctx context.Context, opts provision.UpdateNodeOptions, iaasID string) error {
+func (p *kubernetesProvisioner) internalNodeUpdate(ctx context.Context, opts provision.UpdateNodeOptions) error {
 	client, nodeWrapper, err := p.findNodeByAddress(ctx, opts.Address)
 	if err != nil {
 		return err
-	}
-	if nodeWrapper.IaaSID() != "" {
-		iaasID = ""
 	}
 	node := nodeWrapper.node
 	shouldRemove := map[string]bool{
@@ -1182,7 +1178,7 @@ func (p *kubernetesProvisioner) internalNodeUpdate(ctx context.Context, opts pro
 		})
 	}
 	node.Spec.Taints = taints
-	setNodeMetadata(node, opts.Pool, iaasID, opts.Metadata)
+	setNodeMetadata(node, opts.Pool, opts.Metadata)
 	_, err = client.CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
 	return errors.WithStack(err)
 }

@@ -19,7 +19,6 @@ import (
 	"github.com/tsuru/tsuru/auth"
 	tsuruErrors "github.com/tsuru/tsuru/errors"
 	"github.com/tsuru/tsuru/event"
-	"github.com/tsuru/tsuru/iaas"
 	tsuruIo "github.com/tsuru/tsuru/io"
 	"github.com/tsuru/tsuru/permission"
 	"github.com/tsuru/tsuru/provision"
@@ -51,22 +50,9 @@ func validateNodeAddress(address string) error {
 func addNodeForParams(ctx context.Context, p provision.NodeProvisioner, params provision.AddNodeOptions) (string, map[string]string, error) {
 	response := make(map[string]string)
 	var address string
-	if params.Register {
-		address = params.Metadata["address"]
-		delete(params.Metadata, "address")
-	} else {
-		desc, _ := iaas.Describe(params.Metadata[provision.IaaSMetadataName])
-		response["description"] = desc
-		m, err := iaas.CreateMachine(params.Metadata)
-		if err != nil {
-			return address, response, err
-		}
-		address = m.FormatNodeAddress()
-		params.CaCert = m.CaCert
-		params.ClientCert = m.ClientCert
-		params.ClientKey = m.ClientKey
-		params.IaaSID = m.Id
-	}
+	address = params.Metadata["address"]
+	delete(params.Metadata, "address")
+
 	delete(params.Metadata, provision.PoolMetadataName)
 	prov, _, err := node.FindNodeSkipProvisioner(ctx, address, p.GetName())
 	if err != provision.ErrNodeNotFound {
@@ -107,14 +93,7 @@ func addNodeHandler(w http.ResponseWriter, r *http.Request, t auth.Token) (err e
 	if err != nil {
 		return err
 	}
-	if templateName, ok := params.Metadata["template"]; ok {
-		params.Metadata, err = iaas.ExpandTemplate(templateName, params.Metadata)
-		if err != nil {
-			return &tsuruErrors.HTTP{Code: http.StatusBadRequest, Message: err.Error()}
-		}
-	}
 	params.Pool = params.Metadata[provision.PoolMetadataName]
-	params.IaaSID = params.Metadata[provision.IaaSIDMetadataName]
 	delete(params.Metadata, provision.IaaSIDMetadataName)
 	if params.Pool == "" {
 		return &tsuruErrors.HTTP{Code: http.StatusBadRequest, Message: "pool is required"}
@@ -203,12 +182,10 @@ func removeNodeHandler(w http.ResponseWriter, r *http.Request, t auth.Token) (er
 	}
 	defer func() { evt.Done(err) }()
 	noRebalance, _ := strconv.ParseBool(r.URL.Query().Get("no-rebalance"))
-	removeIaaS, _ := strconv.ParseBool(r.URL.Query().Get("remove-iaas"))
 	return node.RemoveNode(ctx, node.RemoveNodeArgs{
-		Node:       n,
-		Rebalance:  !noRebalance,
-		Writer:     w,
-		RemoveIaaS: removeIaaS,
+		Node:      n,
+		Rebalance: !noRebalance,
+		Writer:    w,
 	})
 }
 
@@ -271,33 +248,9 @@ func listNodesHandler(w http.ResponseWriter, r *http.Request, t auth.Token) erro
 		}
 		allNodes = filteredNodes
 	}
-	iaases, err := permission.ListContextValues(t, permission.PermMachineRead, false)
-	if err != nil {
-		return err
-	}
-	machines, err := iaas.ListMachines()
-	if err != nil {
-		return err
-	}
-	if iaases != nil {
-		filteredMachines := make([]iaas.Machine, 0, len(machines))
-		for _, machine := range machines {
-			for _, iaas := range iaases {
-				if machine.Iaas == iaas {
-					filteredMachines = append(filteredMachines, machine)
-					break
-				}
-			}
-		}
-		machines = filteredMachines
-	}
-	if len(allNodes) == 0 && len(machines) == 0 {
-		w.WriteHeader(http.StatusNoContent)
-		return nil
-	}
+
 	result := apiTypes.ListNodeResponse{
-		Nodes:    allNodes,
-		Machines: machines,
+		Nodes: allNodes,
 	}
 	w.Header().Set("Content-Type", "application/json")
 	return json.NewEncoder(w).Encode(result)
@@ -571,17 +524,6 @@ func infoNodeHandler(w http.ResponseWriter, r *http.Request, t auth.Token) error
 		return permission.ErrUnauthorized
 	}
 	spec := provision.NodeToSpec(node)
-	if spec.IaaSID == "" {
-		var machine iaas.Machine
-		machine, err = iaas.FindMachineByAddress(address)
-		if err != nil {
-			if err != iaas.ErrMachineNotFound {
-				return err
-			}
-		} else {
-			spec.IaaSID = machine.Iaas
-		}
-	}
 
 	units, err := node.Units()
 	if err != nil {

@@ -11,7 +11,6 @@ import (
 
 	"github.com/pkg/errors"
 	tsuruErrors "github.com/tsuru/tsuru/errors"
-	"github.com/tsuru/tsuru/iaas"
 	"github.com/tsuru/tsuru/net"
 	"github.com/tsuru/tsuru/provision"
 )
@@ -89,12 +88,11 @@ func FindNode(ctx context.Context, address string) (provision.Provisioner, provi
 }
 
 type RemoveNodeArgs struct {
-	Node       provision.Node
-	Prov       provision.NodeProvisioner
-	Address    string
-	Writer     io.Writer
-	Rebalance  bool
-	RemoveIaaS bool
+	Node      provision.Node
+	Prov      provision.NodeProvisioner
+	Address   string
+	Writer    io.Writer
+	Rebalance bool
 }
 
 func RemoveNode(ctx context.Context, args RemoveNodeArgs) error {
@@ -112,27 +110,12 @@ func RemoveNode(ctx context.Context, args RemoveNodeArgs) error {
 		Address:   args.Node.Address(),
 		Rebalance: args.Rebalance,
 		Writer:    args.Writer,
-	}, args.RemoveIaaS)
+	})
 }
 
-func removeNodeWithNode(ctx context.Context, node provision.Node, opts provision.RemoveNodeOptions, removeIaaS bool) error {
+func removeNodeWithNode(ctx context.Context, node provision.Node, opts provision.RemoveNodeOptions) error {
 	prov := node.Provisioner()
-	err := prov.RemoveNode(ctx, opts)
-	if err != nil {
-		return err
-	}
-	multi := tsuruErrors.NewMultiError()
-	if removeIaaS {
-		var m iaas.Machine
-		m, err = iaas.FindMachineByIdOrAddress(node.IaaSID(), net.URLToHost(opts.Address))
-		if err == nil {
-			err = m.Destroy(iaas.DestroyParams{})
-		}
-		if err != nil && err != iaas.ErrMachineNotFound {
-			multi.Add(errors.Wrapf(err, "unable to destroy machine in iaas"))
-		}
-	}
-	return multi.ToError()
+	return prov.RemoveNode(ctx, opts)
 }
 
 func metadataNoIaasID(n provision.Node) map[string]string {
