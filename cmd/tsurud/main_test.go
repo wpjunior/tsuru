@@ -47,12 +47,3 @@ func (s *S) TestTokenCmdIsRegistered(c *check.C) {
 	c.Assert(ok, check.Equals, true)
 	c.Assert(tsurudToken.Command, check.FitsTypeOf, tokenCmd{})
 }
-
-func (s *S) TestMigrateCmdIsRegistered(c *check.C) {
-	manager := buildManager()
-	cmd, ok := manager.Commands["migrate"]
-	c.Assert(ok, check.Equals, true)
-	migrate, ok := cmd.(*tsurudCommand)
-	c.Assert(ok, check.Equals, true)
-	c.Assert(migrate.Command, check.FitsTypeOf, &migrateCmd{})
-}

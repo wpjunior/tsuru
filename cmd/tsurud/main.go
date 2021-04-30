@@ -12,13 +12,16 @@ import (
 	"github.com/google/gops/agent"
 	"github.com/tsuru/config"
 	"github.com/tsuru/tsuru/api"
-	_ "github.com/tsuru/tsuru/builder/docker"
 	_ "github.com/tsuru/tsuru/builder/kubernetes"
 	"github.com/tsuru/tsuru/cmd"
 	"github.com/tsuru/tsuru/iaas/dockermachine"
-	_ "github.com/tsuru/tsuru/provision/docker"
 	_ "github.com/tsuru/tsuru/provision/kubernetes"
 	_ "github.com/tsuru/tsuru/storage/mongodb"
+)
+
+const (
+	nativeSchemeName       = "native"
+	defaultProvisionerName = "docker"
 )
 
 const defaultConfigPath = "/etc/tsuru/tsuru.conf"
@@ -29,9 +32,7 @@ func buildManager() *cmd.Manager {
 	m := cmd.NewManager("tsurud", api.Version, "", os.Stdout, os.Stderr, os.Stdin, nil)
 	m.Register(&tsurudCommand{Command: &apiCmd{}})
 	m.Register(&tsurudCommand{Command: tokenCmd{}})
-	m.Register(&tsurudCommand{Command: &migrateCmd{}})
 	m.Register(&tsurudCommand{Command: createRootUserCmd{}})
-	m.Register(&tsurudCommand{Command: &migrationListCmd{}})
 	return m
 }
 
