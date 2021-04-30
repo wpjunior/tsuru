@@ -32,7 +32,6 @@ import (
 	"github.com/tsuru/tsuru/db"
 	tsuruErrors "github.com/tsuru/tsuru/errors"
 	"github.com/tsuru/tsuru/event"
-	"github.com/tsuru/tsuru/healer"
 	"github.com/tsuru/tsuru/log"
 	"github.com/tsuru/tsuru/permission"
 	"github.com/tsuru/tsuru/provision"
@@ -909,18 +908,6 @@ func findNodeForNodeData(ctx context.Context, nodeData provision.NodeStatusData)
 // returning a map which units were found during the update.
 func UpdateNodeStatus(ctx context.Context, nodeData provision.NodeStatusData) ([]UpdateUnitsResult, error) {
 	node, findNodeErr := findNodeForNodeData(ctx, nodeData)
-	var nodeAddresses []string
-	if findNodeErr == nil {
-		nodeAddresses = []string{node.Address()}
-	} else {
-		nodeAddresses = nodeData.Addrs
-	}
-	if healer.HealerInstance != nil {
-		err := healer.HealerInstance.UpdateNodeData(nodeAddresses, nodeData.Checks)
-		if err != nil {
-			log.Errorf("[update node status] unable to set node status in healer: %s", err)
-		}
-	}
 	if findNodeErr == provision.ErrNodeNotFound {
 		counterNodesNotFound.Inc()
 		log.Errorf("[update node status] node not found with nodedata: %#v", nodeData)
