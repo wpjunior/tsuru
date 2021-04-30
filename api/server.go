@@ -39,7 +39,6 @@ import (
 	_ "github.com/tsuru/tsuru/auth/native"
 	_ "github.com/tsuru/tsuru/auth/oauth"
 	_ "github.com/tsuru/tsuru/auth/saml"
-	"github.com/tsuru/tsuru/autoscale"
 	"github.com/tsuru/tsuru/db"
 	"github.com/tsuru/tsuru/event"
 	"github.com/tsuru/tsuru/event/webhook"
@@ -412,14 +411,6 @@ func RunServer(dry bool) http.Handler {
 	m.Add("1.0", http.MethodGet, "/debug/pprof/trace", AuthorizationRequiredHandler(debugHandler(pprof.Trace)))
 	m.Add("1.9", http.MethodGet, "/debug/fgprof", AuthorizationRequiredHandler(debugHandlerInt(fgprof.Handler())))
 
-	m.Add("1.3", http.MethodGet, "/node/autoscale", AuthorizationRequiredHandler(autoScaleHistoryHandler))
-	m.Add("1.3", http.MethodGet, "/node/autoscale/config", AuthorizationRequiredHandler(autoScaleGetConfig))
-	m.Add("1.3", http.MethodPost, "/node/autoscale/run", AuthorizationRequiredHandler(autoScaleRunHandler))
-	m.Add("1.3", http.MethodGet, "/node/autoscale/rules", AuthorizationRequiredHandler(autoScaleListRules))
-	m.Add("1.3", http.MethodPost, "/node/autoscale/rules", AuthorizationRequiredHandler(autoScaleSetRule))
-	m.Add("1.3", http.MethodDelete, "/node/autoscale/rules", AuthorizationRequiredHandler(autoScaleDeleteRule))
-	m.Add("1.3", http.MethodDelete, "/node/autoscale/rules/{id}", AuthorizationRequiredHandler(autoScaleDeleteRule))
-
 	m.Add("1.2", http.MethodGet, "/node", AuthorizationRequiredHandler(listNodesHandler))
 	m.Add("1.2", http.MethodGet, "/node/apps/{appname}/containers", AuthorizationRequiredHandler(listUnitsByApp))
 	m.Add("1.2", http.MethodGet, "/node/{address:.*}/containers", AuthorizationRequiredHandler(listUnitsByNode))
@@ -497,14 +488,6 @@ func RunServer(dry bool) http.Handler {
 	m.Add("1.0", http.MethodGet, "/docker/healing/node", AuthorizationRequiredHandler(nodeHealingRead))
 	m.Add("1.0", http.MethodPost, "/docker/healing/node", AuthorizationRequiredHandler(nodeHealingUpdate))
 	m.Add("1.0", http.MethodDelete, "/docker/healing/node", AuthorizationRequiredHandler(nodeHealingDelete))
-
-	m.Add("1.0", http.MethodGet, "/docker/autoscale", AuthorizationRequiredHandler(autoScaleHistoryHandler))
-	m.Add("1.0", http.MethodGet, "/docker/autoscale/config", AuthorizationRequiredHandler(autoScaleGetConfig))
-	m.Add("1.0", http.MethodPost, "/docker/autoscale/run", AuthorizationRequiredHandler(autoScaleRunHandler))
-	m.Add("1.0", http.MethodGet, "/docker/autoscale/rules", AuthorizationRequiredHandler(autoScaleListRules))
-	m.Add("1.0", http.MethodPost, "/docker/autoscale/rules", AuthorizationRequiredHandler(autoScaleSetRule))
-	m.Add("1.0", http.MethodDelete, "/docker/autoscale/rules", AuthorizationRequiredHandler(autoScaleDeleteRule))
-	m.Add("1.0", http.MethodDelete, "/docker/autoscale/rules/{id}", AuthorizationRequiredHandler(autoScaleDeleteRule))
 
 	m.Add("1.0", http.MethodGet, "/plans/routers", AuthorizationRequiredHandler(listRouters))
 
@@ -652,10 +635,6 @@ func startServer(handler http.Handler) error {
 		return err
 	}
 	_, err = healer.Initialize()
-	if err != nil {
-		return err
-	}
-	err = autoscale.Initialize()
 	if err != nil {
 		return err
 	}
