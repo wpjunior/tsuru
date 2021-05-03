@@ -68,7 +68,6 @@ type kubernetesProvisioner struct {
 var (
 	_ provision.Provisioner              = &kubernetesProvisioner{}
 	_ provision.NodeProvisioner          = &kubernetesProvisioner{}
-	_ provision.NodeContainerProvisioner = &kubernetesProvisioner{}
 	_ provision.MessageProvisioner       = &kubernetesProvisioner{}
 	_ provision.SleepableProvisioner     = &kubernetesProvisioner{}
 	_ provision.VolumeProvisioner        = &kubernetesProvisioner{}
@@ -1238,21 +1237,6 @@ func (p *kubernetesProvisioner) Deploy(ctx context.Context, args provision.Deplo
 		return "", err
 	}
 	return args.Version.VersionInfo().DeployImage, nil
-}
-
-func (p *kubernetesProvisioner) UpgradeNodeContainer(ctx context.Context, name string, pool string, writer io.Writer) error {
-	m := nodeContainerManager{}
-	return servicecommon.UpgradeNodeContainer(&m, name, pool, writer)
-}
-
-func (p *kubernetesProvisioner) RemoveNodeContainer(ctx context.Context, name string, pool string, writer io.Writer) error {
-	err := forEachCluster(ctx, func(cluster *ClusterClient) error {
-		return cleanupDaemonSet(ctx, cluster, name, pool)
-	})
-	if err == provTypes.ErrNoCluster {
-		return nil
-	}
-	return err
 }
 
 func (p *kubernetesProvisioner) ExecuteCommand(ctx context.Context, opts provision.ExecOptions) error {

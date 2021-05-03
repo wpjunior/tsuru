@@ -9,7 +9,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -18,7 +17,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	docker "github.com/fsouza/go-dockerclient"
 	"github.com/kr/pretty"
 	"github.com/tsuru/config"
 	"github.com/tsuru/tsuru/app"
@@ -28,7 +26,6 @@ import (
 	"github.com/tsuru/tsuru/provision"
 	tsuruv1 "github.com/tsuru/tsuru/provision/kubernetes/pkg/apis/tsuru/v1"
 	"github.com/tsuru/tsuru/provision/kubernetes/testing"
-	"github.com/tsuru/tsuru/provision/nodecontainer"
 	"github.com/tsuru/tsuru/provision/pool"
 	"github.com/tsuru/tsuru/provision/provisiontest"
 	"github.com/tsuru/tsuru/router/rebuild"
@@ -39,7 +36,6 @@ import (
 	provTypes "github.com/tsuru/tsuru/types/provision"
 	volumeTypes "github.com/tsuru/tsuru/types/volume"
 	check "gopkg.in/check.v1"
-	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -2057,97 +2053,6 @@ mkdir -p $(dirname /dev/null) && cat >/dev/null && tsuru_unit_agent   myapp depl
 	img, err := s.p.Deploy(context.TODO(), provision.DeployArgs{App: a, Version: version, Event: evt})
 	c.Assert(err, check.IsNil, check.Commentf("%+v", err))
 	c.Assert(img, check.Equals, "registry.example.com/tsuru/app-myapp:v1")
-}
-
-func (s *S) TestUpgradeNodeContainer(c *check.C) {
-	config.Set("kubernetes:use-pool-namespaces", true)
-	defer config.Unset("kubernetes:use-pool-namespaces")
-	s.mock.MockfakeNodes(c)
-	c1 := nodecontainer.NodeContainerConfig{
-		Name: "bs",
-		Config: docker.Config{
-			Image: "bsimg",
-		},
-		HostConfig: docker.HostConfig{
-			RestartPolicy: docker.AlwaysRestart(),
-			Privileged:    true,
-			Binds:         []string{"/xyz:/abc:ro"},
-		},
-	}
-	err := pool.AddPool(context.TODO(), pool.AddPoolOptions{Name: "p1", Provisioner: provisionerName})
-	c.Assert(err, check.IsNil)
-	err = pool.AddPool(context.TODO(), pool.AddPoolOptions{Name: "p2", Provisioner: provisionerName})
-	c.Assert(err, check.IsNil)
-	err = pool.AddPool(context.TODO(), pool.AddPoolOptions{Name: "p-ignored", Provisioner: "docker"})
-	c.Assert(err, check.IsNil)
-
-	err = nodecontainer.AddNewContainer("", &c1)
-	c.Assert(err, check.IsNil)
-	c2 := c1
-	c2.Config.Env = []string{"e1=v1"}
-	err = nodecontainer.AddNewContainer("p1", &c2)
-	c.Assert(err, check.IsNil)
-	c3 := c1
-	err = nodecontainer.AddNewContainer("p2", &c3)
-	c.Assert(err, check.IsNil)
-	c4 := c1
-	err = nodecontainer.AddNewContainer("p-ignored", &c4)
-	c.Assert(err, check.IsNil)
-	buf := &bytes.Buffer{}
-	err = s.p.UpgradeNodeContainer(context.TODO(), "bs", "", buf)
-	c.Assert(err, check.IsNil)
-
-	daemons, err := s.client.AppsV1().DaemonSets(s.client.PoolNamespace("")).List(context.TODO(), metav1.ListOptions{})
-	c.Assert(err, check.IsNil)
-	c.Assert(daemons.Items, check.HasLen, 1)
-	daemons, err = s.client.AppsV1().DaemonSets(s.client.PoolNamespace("p1")).List(context.TODO(), metav1.ListOptions{})
-	c.Assert(err, check.IsNil)
-	c.Assert(daemons.Items, check.HasLen, 1)
-	daemons, err = s.client.AppsV1().DaemonSets(s.client.PoolNamespace("p2")).List(context.TODO(), metav1.ListOptions{})
-	c.Assert(err, check.IsNil)
-	c.Assert(daemons.Items, check.HasLen, 1)
-	daemons, err = s.client.AppsV1().DaemonSets(s.client.PoolNamespace("p-ignored")).List(context.TODO(), metav1.ListOptions{})
-	c.Assert(err, check.IsNil)
-	c.Assert(daemons.Items, check.HasLen, 0)
-}
-
-func (s *S) TestRemoveNodeContainer(c *check.C) {
-	config.Set("kubernetes:use-pool-namespaces", true)
-	defer config.Unset("kubernetes:use-pool-namespaces")
-	s.mock.MockfakeNodes(c)
-	ns := s.client.PoolNamespace("p1")
-	ds, err := s.client.AppsV1().DaemonSets(ns).Create(context.TODO(), &appsv1.DaemonSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "node-container-bs-pool-p1",
-			Namespace: ns,
-		},
-	}, metav1.CreateOptions{})
-	c.Assert(err, check.IsNil)
-	_, err = s.client.CoreV1().Pods(ns).Create(context.TODO(), &apiv1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "node-container-bs-pool-p1-xyz",
-			Namespace: ns,
-			Labels: map[string]string{
-				"tsuru.io/is-tsuru":            "true",
-				"tsuru.io/is-node-container":   "true",
-				"tsuru.io/provisioner":         provisionerName,
-				"tsuru.io/node-container-name": "bs",
-				"tsuru.io/node-container-pool": "p1",
-			},
-			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(ds, appsv1.SchemeGroupVersion.WithKind("DaemonSet")),
-			},
-		},
-	}, metav1.CreateOptions{})
-	c.Assert(err, check.IsNil)
-	err = s.p.RemoveNodeContainer(context.TODO(), "bs", "p1", ioutil.Discard)
-	c.Assert(err, check.IsNil)
-	daemons, err := s.client.AppsV1().DaemonSets(ns).List(context.TODO(), metav1.ListOptions{})
-	c.Assert(err, check.IsNil)
-	c.Assert(daemons.Items, check.HasLen, 0)
-	pods, err := s.client.CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{})
-	c.Assert(err, check.IsNil)
-	c.Assert(pods.Items, check.HasLen, 0)
 }
 
 func (s *S) TestExecuteCommandWithStdin(c *check.C) {

@@ -46,7 +46,6 @@ import (
 	"github.com/tsuru/tsuru/log"
 	"github.com/tsuru/tsuru/provision"
 	"github.com/tsuru/tsuru/provision/cluster"
-	"github.com/tsuru/tsuru/provision/nodecontainer"
 	"github.com/tsuru/tsuru/provision/pool"
 	"github.com/tsuru/tsuru/router"
 	"github.com/tsuru/tsuru/router/rebuild"
@@ -276,7 +275,6 @@ func RunServer(dry bool) http.Handler {
 	m.Add("1.0", http.MethodPost, "/apps/{app}/deploy/rollback", AuthorizationRequiredHandler(deployRollback))
 	m.Add("1.4", http.MethodPut, "/apps/{app}/deploy/rollback/update", AuthorizationRequiredHandler(deployRollbackUpdate))
 	m.Add("1.3", http.MethodPost, "/apps/{app}/deploy/rebuild", AuthorizationRequiredHandler(deployRebuild))
-	m.Add("1.0", http.MethodGet, "/apps/{app}/metric/envs", AuthorizationRequiredHandler(appMetricEnvs))
 	m.Add("1.0", http.MethodPost, "/apps/{app}/routes", AuthorizationRequiredHandler(appRebuildRoutes))
 	m.Add("1.2", http.MethodGet, "/apps/{app}/certificate", AuthorizationRequiredHandler(listCertificates))
 	m.Add("1.2", http.MethodPut, "/apps/{app}/certificate", AuthorizationRequiredHandler(setCertificate))
@@ -412,13 +410,6 @@ func RunServer(dry bool) http.Handler {
 	m.Add("1.3", http.MethodPost, "/node/rebalance", AuthorizationRequiredHandler(rebalanceNodesHandler))
 	m.Add("1.6", http.MethodGet, "/node/{address:.*}", AuthorizationRequiredHandler(infoNodeHandler))
 
-	m.Add("1.2", http.MethodGet, "/nodecontainers", AuthorizationRequiredHandler(nodeContainerList))
-	m.Add("1.2", http.MethodPost, "/nodecontainers", AuthorizationRequiredHandler(nodeContainerCreate))
-	m.Add("1.2", http.MethodGet, "/nodecontainers/{name}", AuthorizationRequiredHandler(nodeContainerInfo))
-	m.Add("1.2", http.MethodDelete, "/nodecontainers/{name}", AuthorizationRequiredHandler(nodeContainerDelete))
-	m.Add("1.2", http.MethodPost, "/nodecontainers/{name}", AuthorizationRequiredHandler(nodeContainerUpdate))
-	m.Add("1.2", http.MethodPost, "/nodecontainers/{name}/upgrade", AuthorizationRequiredHandler(nodeContainerUpgrade))
-
 	m.Add("1.3", http.MethodGet, "/routers", AuthorizationRequiredHandler(listRouters))
 	m.Add("1.8", http.MethodPost, "/routers", AuthorizationRequiredHandler(addRouter))
 	m.Add("1.8", http.MethodPut, "/routers/{name}", AuthorizationRequiredHandler(updateRouter))
@@ -452,13 +443,6 @@ func RunServer(dry bool) http.Handler {
 	m.Add("1.7", http.MethodPost, "/brokers", AuthorizationRequiredHandler(serviceBrokerAdd))
 	m.Add("1.7", http.MethodPut, "/brokers/{broker}", AuthorizationRequiredHandler(serviceBrokerUpdate))
 	m.Add("1.7", http.MethodDelete, "/brokers/{broker}", AuthorizationRequiredHandler(serviceBrokerDelete))
-
-	m.Add("1.0", http.MethodGet, "/docker/nodecontainers", AuthorizationRequiredHandler(nodeContainerList))
-	m.Add("1.0", http.MethodPost, "/docker/nodecontainers", AuthorizationRequiredHandler(nodeContainerCreate))
-	m.Add("1.0", http.MethodGet, "/docker/nodecontainers/{name}", AuthorizationRequiredHandler(nodeContainerInfo))
-	m.Add("1.0", http.MethodDelete, "/docker/nodecontainers/{name}", AuthorizationRequiredHandler(nodeContainerDelete))
-	m.Add("1.0", http.MethodPost, "/docker/nodecontainers/{name}", AuthorizationRequiredHandler(nodeContainerUpdate))
-	m.Add("1.0", http.MethodPost, "/docker/nodecontainers/{name}/upgrade", AuthorizationRequiredHandler(nodeContainerUpgrade))
 
 	m.Add("1.0", http.MethodGet, "/plans/routers", AuthorizationRequiredHandler(listRouters))
 
@@ -597,10 +581,6 @@ func startServer(handler http.Handler) error {
 		return err
 	}
 	fmt.Printf("Using %q auth scheme.\n", scheme)
-	_, err = nodecontainer.InitializeBS(ctx, app.AuthScheme, app.InternalAppName)
-	if err != nil {
-		return err
-	}
 	err = provision.InitializeAll()
 	if err != nil {
 		return err

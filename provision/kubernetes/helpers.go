@@ -23,7 +23,6 @@ import (
 	tsuruNet "github.com/tsuru/tsuru/net"
 	"github.com/tsuru/tsuru/provision"
 	tsuruv1 "github.com/tsuru/tsuru/provision/kubernetes/pkg/apis/tsuru/v1"
-	"github.com/tsuru/tsuru/provision/nodecontainer"
 	"github.com/tsuru/tsuru/set"
 	appTypes "github.com/tsuru/tsuru/types/app"
 	appsv1 "k8s.io/api/apps/v1"
@@ -68,11 +67,6 @@ func validKubeName(name string) string {
 func serviceAccountNameForApp(a provision.App) string {
 	name := validKubeName(a.GetName())
 	return fmt.Sprintf("app-%s", name)
-}
-
-func serviceAccountNameForNodeContainer(nodeContainer nodecontainer.NodeContainerConfig) string {
-	name := validKubeName(nodeContainer.Name)
-	return fmt.Sprintf("node-container-%s", name)
 }
 
 func deploymentNameForApp(a provision.App, process string, version int) string {
@@ -138,15 +132,6 @@ func appProcessName(a provision.App, process string, version int, suffix string)
 func execCommandPodNameForApp(a provision.App) string {
 	name := validKubeName(a.GetName())
 	return fmt.Sprintf("%s-isolated-run", name)
-}
-
-func daemonSetName(name, pool string) string {
-	name = validKubeName(name)
-	pool = validKubeName(pool)
-	if pool == "" {
-		return fmt.Sprintf("node-container-%s-all", name)
-	}
-	return fmt.Sprintf("node-container-%s-pool-%s", name, pool)
 }
 
 func volumeName(name string) string {
@@ -859,33 +844,6 @@ func cleanupServices(ctx context.Context, client *ClusterClient, a provision.App
 		}
 	}
 	return nil
-}
-
-func cleanupDaemonSet(ctx context.Context, client *ClusterClient, name, pool string) error {
-	dsName := daemonSetName(name, pool)
-	ns := client.PoolNamespace(pool)
-	ds, err := client.AppsV1().DaemonSets(ns).Get(ctx, dsName, metav1.GetOptions{})
-	if err != nil {
-		if k8sErrors.IsNotFound(err) {
-			return nil
-		}
-		return errors.WithStack(err)
-	}
-	err = client.AppsV1().DaemonSets(ns).Delete(ctx, dsName, metav1.DeleteOptions{
-		PropagationPolicy: propagationPtr(metav1.DeletePropagationForeground),
-	})
-	if err != nil && !k8sErrors.IsNotFound(err) {
-		return errors.WithStack(err)
-	}
-	ls := provision.NodeContainerLabels(provision.NodeContainerLabelsOpts{
-		Name:        name,
-		Pool:        pool,
-		Provisioner: provisionerName,
-		Prefix:      tsuruLabelPrefix,
-	})
-	return cleanupPods(ctx, client, metav1.ListOptions{
-		LabelSelector: labels.SelectorFromSet(labels.Set(ls.ToNodeContainerSelector())).String(),
-	}, ds)
 }
 
 func cleanupPod(ctx context.Context, client *ClusterClient, podName, namespace string) error {

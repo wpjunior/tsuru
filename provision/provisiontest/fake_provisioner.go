@@ -37,7 +37,6 @@ var (
 
 	_ provision.Provisioner              = &FakeProvisioner{}
 	_ provision.NodeProvisioner          = &FakeProvisioner{}
-	_ provision.NodeContainerProvisioner = &FakeProvisioner{}
 	_ provision.InterAppProvisioner      = &FakeProvisioner{}
 	_ provision.UpdatableProvisioner     = &FakeProvisioner{}
 	_ provision.Provisioner              = &FakeProvisioner{}
@@ -383,16 +382,15 @@ type failure struct {
 
 // Fake implementation for provision.Provisioner.
 type FakeProvisioner struct {
-	Name           string
-	LogsEnabled    bool
-	outputs        chan []byte
-	failures       chan failure
-	apps           map[string]provisionedApp
-	mut            sync.RWMutex
-	execs          map[string][]provision.ExecOptions
-	execsMut       sync.Mutex
-	nodes          map[string]FakeNode
-	nodeContainers map[string]int
+	Name        string
+	LogsEnabled bool
+	outputs     chan []byte
+	failures    chan failure
+	apps        map[string]provisionedApp
+	mut         sync.RWMutex
+	execs       map[string][]provision.ExecOptions
+	execsMut    sync.Mutex
+	nodes       map[string]FakeNode
 }
 
 func NewFakeProvisioner() *FakeProvisioner {
@@ -402,7 +400,6 @@ func NewFakeProvisioner() *FakeProvisioner {
 	p.apps = make(map[string]provisionedApp)
 	p.execs = make(map[string][]provision.ExecOptions)
 	p.nodes = make(map[string]FakeNode)
-	p.nodeContainers = make(map[string]int)
 	return &p
 }
 
@@ -856,8 +853,6 @@ func (p *FakeProvisioner) Reset() {
 	p.nodes = make(map[string]FakeNode)
 	p.mut.Unlock()
 	uniqueIpCounter = 0
-
-	p.nodeContainers = make(map[string]int)
 
 	for {
 		select {
@@ -1349,20 +1344,6 @@ func (p *FakeProvisioner) FilterAppsByUnitStatus(ctx context.Context, apps []pro
 
 func (p *FakeProvisioner) GetName() string {
 	return p.Name
-}
-
-func (p *FakeProvisioner) UpgradeNodeContainer(ctx context.Context, name string, pool string, writer io.Writer) error {
-	p.nodeContainers[name+"-"+pool]++
-	return nil
-}
-
-func (p *FakeProvisioner) RemoveNodeContainer(ctx context.Context, name string, pool string, writer io.Writer) error {
-	p.nodeContainers[name+"-"+pool] = 0
-	return nil
-}
-
-func (p *FakeProvisioner) HasNodeContainer(name string, pool string) bool {
-	return p.nodeContainers[name+"-"+pool] > 0
 }
 
 func (p *FakeProvisioner) DeleteVolume(ctx context.Context, volName, pool string) error {
