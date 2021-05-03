@@ -739,14 +739,6 @@ func (s *S) TestUpdateNodeEnableAndDisableCantBeDone(c *check.C) {
 	c.Assert(recorder.Body.String(), check.Equals, "A node can't be enabled and disabled simultaneously.\n")
 }
 
-func boolPtr(b bool) *bool {
-	return &b
-}
-
-func intPtr(i int) *int {
-	return &i
-}
-
 func (s *S) TestNodeRebalanceEmptyBodyHandler(c *check.C) {
 	err := s.provisioner.AddNode(context.TODO(), provision.AddNodeOptions{
 		Address: "n1",

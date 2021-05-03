@@ -49,8 +49,7 @@ func validateNodeAddress(address string) error {
 
 func addNodeForParams(ctx context.Context, p provision.NodeProvisioner, params provision.AddNodeOptions) (string, map[string]string, error) {
 	response := make(map[string]string)
-	var address string
-	address = params.Metadata["address"]
+	address := params.Metadata["address"]
 	delete(params.Metadata, "address")
 
 	delete(params.Metadata, provision.PoolMetadataName)

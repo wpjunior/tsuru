@@ -131,9 +131,6 @@ func (ProvisionSuite) TestUnitNotFoundError(c *check.C) {
 
 type testNode struct{}
 
-func (n *testNode) IaaSID() string {
-	return "1"
-}
 func (n *testNode) Pool() string {
 	return "a"
 }
@@ -167,7 +164,6 @@ func (ProvisionSuite) TestNodeToSpec(c *check.C) {
 	n := testNode{}
 	spec := NodeToSpec(&n)
 	c.Assert(spec, check.DeepEquals, NodeSpec{
-		IaaSID:   "1",
 		Address:  "b",
 		Metadata: map[string]string{"d": "e"},
 		Status:   "c",
@@ -187,7 +183,6 @@ func (ProvisionSuite) TestNodeToSpecExtraData(c *check.C) {
 	n := extraNode{}
 	spec := NodeToSpec(&n)
 	c.Assert(spec, check.DeepEquals, NodeSpec{
-		IaaSID:   "1",
 		Address:  "b",
 		Metadata: map[string]string{"d": "e", "e1": "v1"},
 		Status:   "c",
