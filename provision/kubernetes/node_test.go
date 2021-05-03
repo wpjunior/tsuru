@@ -136,9 +136,8 @@ func (s *S) TestNodeMetadata(c *check.C) {
 		node: &apiv1.Node{
 			ObjectMeta: metav1.ObjectMeta{
 				Labels: map[string]string{
-					"tsuru.io/pool":    "p1",
-					"tsuru.io/iaas-id": "i1",
-					"m2.m3":            "v2",
+					"tsuru.io/pool": "p1",
+					"m2.m3":         "v2",
 				},
 				Annotations: map[string]string{
 					"a1":          "v3",
@@ -149,14 +148,12 @@ func (s *S) TestNodeMetadata(c *check.C) {
 		},
 	}
 	c.Assert(node.Metadata(), check.DeepEquals, map[string]string{
-		"tsuru.io/pool":    "p1",
-		"tsuru.io/iaas-id": "i1",
-		"tsuru.io/a4":      "v5",
+		"tsuru.io/pool": "p1",
+		"tsuru.io/a4":   "v5",
 	})
 	c.Assert(node.MetadataNoPrefix(), check.DeepEquals, map[string]string{
-		"pool":    "p1",
-		"iaas-id": "i1",
-		"a4":      "v5",
+		"pool": "p1",
+		"a4":   "v5",
 	})
 	c.Assert(node.ExtraData(), check.DeepEquals, map[string]string{
 		"m2.m3": "v2",

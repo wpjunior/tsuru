@@ -1461,7 +1461,7 @@ func (s *AuthSuite) TestUpdateTeam(c *check.C) {
 		return nil
 	}
 	body := strings.NewReader("newname=" + newTeamName)
-	request, err := http.NewRequest(http.MethodPost, "/teams/"+oldTeamName, body)
+	request, err := http.NewRequest(http.MethodPut, "/teams/"+oldTeamName, body)
 	c.Assert(err, check.IsNil)
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	request.Header.Set("Authorization", "bearer "+s.token.GetValue())
@@ -1475,7 +1475,7 @@ func (s *AuthSuite) TestUpdateTeamNotFound(c *check.C) {
 		return nil, authTypes.ErrTeamNotFound
 	}
 	body := strings.NewReader("newname=team9000")
-	request, err := http.NewRequest(http.MethodPost, "/teams/team1", body)
+	request, err := http.NewRequest(http.MethodPut, "/teams/team1", body)
 	c.Assert(err, check.IsNil)
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	request.Header.Set("Authorization", "bearer "+s.token.GetValue())
@@ -1522,7 +1522,7 @@ func (s *AuthSuite) TestUpdateTeamCallFnsAndRollback(c *check.C) {
 		},
 	}
 	body := strings.NewReader("newname=team9000")
-	request, err := http.NewRequest(http.MethodPost, "/teams/team1", body)
+	request, err := http.NewRequest(http.MethodPut, "/teams/team1", body)
 	c.Assert(err, check.IsNil)
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	request.Header.Set("Authorization", "bearer "+s.token.GetValue())
@@ -1560,7 +1560,7 @@ func (s *AuthSuite) TestUpdateTeamErrorInRollback(c *check.C) {
 		},
 	}
 	body := strings.NewReader("newname=team9000")
-	request, err := http.NewRequest(http.MethodPost, "/teams/team1", body)
+	request, err := http.NewRequest(http.MethodPut, "/teams/team1", body)
 	c.Assert(err, check.IsNil)
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	request.Header.Set("Authorization", "bearer "+s.token.GetValue())

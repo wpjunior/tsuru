@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -19,7 +18,6 @@ import (
 	"github.com/tsuru/tsuru/app"
 	"github.com/tsuru/tsuru/event"
 	"github.com/tsuru/tsuru/event/eventtest"
-	"github.com/tsuru/tsuru/iaas"
 	"github.com/tsuru/tsuru/permission"
 	"github.com/tsuru/tsuru/provision"
 	"github.com/tsuru/tsuru/provision/pool"
@@ -153,54 +151,6 @@ func (s *S) TestAddNodeHandlerExisting(c *check.C) {
 	c.Assert(err, check.IsNil)
 	c.Assert(result["Error"], check.Equals, "fake node already exists")
 	c.Assert(rec.Code, check.Equals, http.StatusCreated)
-}
-
-func (s *S) TestAddNodeHandlerCreatingAnIaasMachine(c *check.C) {
-	iaas.RegisterIaasProvider("test-iaas", newTestIaaS)
-	opts := pool.AddPoolOptions{Name: "pool1"}
-	err := pool.AddPool(context.TODO(), opts)
-	c.Assert(err, check.IsNil)
-	defer pool.RemovePool("pool1")
-	params := provision.AddNodeOptions{
-		Register: false,
-		Metadata: map[string]string{
-			"id":   "test1",
-			"pool": "pool1",
-			"iaas": "test-iaas",
-		},
-	}
-	v, err := form.EncodeToValues(&params)
-	c.Assert(err, check.IsNil)
-	b := strings.NewReader(v.Encode())
-	req, err := http.NewRequest("POST", "/node", b)
-	c.Assert(err, check.IsNil)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Authorization", s.token.GetValue())
-	rec := httptest.NewRecorder()
-	s.testServer.ServeHTTP(rec, req)
-	c.Assert(rec.Code, check.Equals, http.StatusCreated)
-	c.Assert(rec.Body.String(), check.Equals, "")
-	nodes, err := s.provisioner.ListNodes(context.TODO(), nil)
-	c.Assert(err, check.IsNil)
-	c.Assert(nodes, check.HasLen, 1)
-	c.Assert(nodes[0].Address(), check.Equals, "http://test1.somewhere.com:2375")
-	c.Assert(nodes[0].Pool(), check.Equals, "pool1")
-	c.Assert(nodes[0].IaaSID(), check.Equals, "test1-pool1")
-	c.Assert(nodes[0].Metadata(), check.DeepEquals, map[string]string{
-		"id":      "test1",
-		"iaas":    "test-iaas",
-		"iaas-id": "test1-pool1",
-	})
-	c.Assert(eventtest.EventDesc{
-		Target: event.Target{Type: event.TargetTypeNode, Value: "http://test1.somewhere.com:2375"},
-		Owner:  s.token.GetUserName(),
-		Kind:   "node.create",
-		StartCustomData: []map[string]interface{}{
-			{"name": "Metadata.id", "value": "test1"},
-			{"name": "Metadata.pool", "value": "pool1"},
-			{"name": "Register", "value": ""},
-		},
-	}, eventtest.HasEvent)
 }
 
 func (s *S) TestAddNodeHandlerWithoutAddress(c *check.C) {
@@ -357,64 +307,6 @@ func (s *S) TestRemoveNodeHandlerNoRebalance(c *check.C) {
 			{"name": ":address", "value": "host.com:2375"},
 		},
 	}, eventtest.HasEvent)
-}
-
-func (s *S) TestRemoveNodeHandlerWithoutRemoveIaaS(c *check.C) {
-	iaas.RegisterIaasProvider("some-iaas", newTestIaaS)
-	machine, err := iaas.CreateMachineForIaaS("some-iaas", map[string]string{"id": "m1"})
-	c.Assert(err, check.IsNil)
-	err = s.provisioner.AddNode(context.TODO(), provision.AddNodeOptions{
-		Address: fmt.Sprintf("http://%s:2375", machine.Address),
-	})
-	c.Assert(err, check.IsNil)
-	u := fmt.Sprintf("/node/http://%s:2375?remove-iaas=false", machine.Address)
-	req, err := http.NewRequest("DELETE", u, nil)
-	c.Assert(err, check.IsNil)
-	req.Header.Set("Authorization", "bearer "+s.token.GetValue())
-	rec := httptest.NewRecorder()
-	server := RunServer(true)
-	server.ServeHTTP(rec, req)
-	c.Assert(rec.Body.String(), check.Equals, "rebalancing...remove done!")
-	c.Assert(rec.Code, check.Equals, http.StatusOK)
-	nodes, err := s.provisioner.ListNodes(context.TODO(), nil)
-	c.Assert(err, check.IsNil)
-	c.Assert(nodes, check.HasLen, 0)
-	dbM, err := iaas.FindMachineById(machine.Id)
-	c.Assert(err, check.IsNil)
-	c.Assert(dbM.Id, check.Equals, machine.Id)
-}
-
-func (s *S) TestRemoveNodeHandlerWithRemoveIaaS(c *check.C) {
-	iaas.RegisterIaasProvider("some-iaas", newTestIaaS)
-	machine, err := iaas.CreateMachineForIaaS("some-iaas", map[string]string{"id": "m1"})
-	c.Assert(err, check.IsNil)
-	err = s.provisioner.AddNode(context.TODO(), provision.AddNodeOptions{
-		Address: fmt.Sprintf("http://%s:2375", machine.Address),
-	})
-	c.Assert(err, check.IsNil)
-	u := fmt.Sprintf("/node/http://%s:2375?remove-iaas=true", machine.Address)
-	req, err := http.NewRequest("DELETE", u, nil)
-	c.Assert(err, check.IsNil)
-	req.Header.Set("Authorization", "bearer "+s.token.GetValue())
-	rec := httptest.NewRecorder()
-	server := RunServer(true)
-	server.ServeHTTP(rec, req)
-	c.Assert(rec.Body.String(), check.Equals, "rebalancing...remove done!")
-	c.Assert(rec.Code, check.Equals, http.StatusOK)
-	nodes, err := s.provisioner.ListNodes(context.TODO(), nil)
-	c.Assert(err, check.IsNil)
-	c.Assert(nodes, check.HasLen, 0)
-	_, err = iaas.FindMachineById(machine.Id)
-	c.Assert(err, check.Equals, iaas.ErrMachineNotFound)
-}
-
-func (s *S) TestListNodeHandlerNoContent(c *check.C) {
-	req, err := http.NewRequest("GET", "/node", nil)
-	c.Assert(err, check.IsNil)
-	rec := httptest.NewRecorder()
-	req.Header.Set("Authorization", s.token.GetValue())
-	s.testServer.ServeHTTP(rec, req)
-	c.Assert(rec.Code, check.Equals, http.StatusNoContent)
 }
 
 func (s *S) TestListNodeHandler(c *check.C) {
@@ -960,7 +852,6 @@ func (s *S) TestInfoNodeHandlerNodeOnly(c *check.C) {
 	err := s.provisioner.AddNode(context.TODO(), provision.AddNodeOptions{
 		Address: nodeAddr,
 		Pool:    "pool1",
-		IaaSID:  "teste123",
 	})
 	c.Assert(err, check.IsNil)
 	req, err := http.NewRequest("GET", "/node/"+nodeAddr, nil)
@@ -974,6 +865,6 @@ func (s *S) TestInfoNodeHandlerNodeOnly(c *check.C) {
 	err = json.Unmarshal(rec.Body.Bytes(), &result)
 	c.Assert(err, check.IsNil)
 	c.Assert(result.Node, check.DeepEquals, provision.NodeSpec{
-		Address: nodeAddr, Provisioner: "fake", Pool: "pool1", Status: "enabled", IaaSID: "teste123", Metadata: map[string]string{},
+		Address: nodeAddr, Provisioner: "fake", Pool: "pool1", Status: "enabled", Metadata: map[string]string{},
 	})
 }

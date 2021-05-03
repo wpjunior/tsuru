@@ -273,7 +273,6 @@ func (s *S) TestAddNodeIaaSID(c *check.C) {
 		err := s.p.AddNode(context.TODO(), provision.AddNodeOptions{
 			Address: "my-node-addr",
 			Pool:    "p1",
-			IaaSID:  "id-1",
 			Metadata: map[string]string{
 				"m1": "v1",
 			},
@@ -286,13 +285,11 @@ func (s *S) TestAddNodeIaaSID(c *check.C) {
 	c.Assert(nodes[0].Address(), check.Equals, "my-node-addr")
 	c.Assert(nodes[0].Pool(), check.Equals, "p1")
 	c.Assert(nodes[0].Metadata(), check.DeepEquals, map[string]string{
-		"tsuru.io/pool":    "p1",
-		"tsuru.io/iaas-id": "id-1",
-		"tsuru.io/m1":      "v1",
+		"tsuru.io/pool": "p1",
+		"tsuru.io/m1":   "v1",
 	})
 	c.Assert(nodes[0].(*kubernetesNodeWrapper).node.Labels, check.DeepEquals, map[string]string{
-		"tsuru.io/pool":    "p1",
-		"tsuru.io/iaas-id": "id-1",
+		"tsuru.io/pool": "p1",
 	})
 	c.Assert(nodes[0].(*kubernetesNodeWrapper).node.Annotations, check.DeepEquals, map[string]string{
 		"tsuru.io/m1": "v1",
@@ -378,7 +375,6 @@ func (s *S) TestUpdateNodeWithIaaSID(c *check.C) {
 		err := s.p.AddNode(context.TODO(), provision.AddNodeOptions{
 			Address: "my-node-addr",
 			Pool:    "p1",
-			IaaSID:  "id-1",
 			Metadata: map[string]string{
 				"m1": "v1",
 			},
@@ -399,17 +395,14 @@ func (s *S) TestUpdateNodeWithIaaSID(c *check.C) {
 	nodes, err := s.p.ListNodes(context.TODO(), nil)
 	c.Assert(err, check.IsNil)
 	c.Assert(nodes, check.HasLen, 1)
-	c.Assert(nodes[0].IaaSID(), check.Equals, "id-1")
 	c.Assert(nodes[0].Address(), check.Equals, "my-node-addr")
 	c.Assert(nodes[0].Pool(), check.Equals, "p2")
 	c.Assert(nodes[0].Metadata(), check.DeepEquals, map[string]string{
-		"tsuru.io/pool":    "p2",
-		"tsuru.io/iaas-id": "id-1",
-		"tsuru.io/m2":      "v2",
+		"tsuru.io/pool": "p2",
+		"tsuru.io/m2":   "v2",
 	})
 	c.Assert(nodes[0].(*kubernetesNodeWrapper).node.Labels, check.DeepEquals, map[string]string{
-		"tsuru.io/pool":    "p2",
-		"tsuru.io/iaas-id": "id-1",
+		"tsuru.io/pool": "p2",
 	})
 	c.Assert(nodes[0].(*kubernetesNodeWrapper).node.Annotations, check.DeepEquals, map[string]string{
 		"tsuru.io/m2": "v2",
@@ -418,17 +411,14 @@ func (s *S) TestUpdateNodeWithIaaSID(c *check.C) {
 	err = s.p.AddNode(context.TODO(), provision.AddNodeOptions{
 		Address: "my-node-addr",
 		Pool:    "p2",
-		IaaSID:  "bogus",
 	})
 	c.Assert(err, check.IsNil)
 	nodes, err = s.p.ListNodes(context.TODO(), nil)
 	c.Assert(err, check.IsNil)
 	c.Assert(nodes, check.HasLen, 1)
-	c.Assert(nodes[0].IaaSID(), check.Equals, "id-1")
 	c.Assert(nodes[0].Metadata(), check.DeepEquals, map[string]string{
-		"tsuru.io/pool":    "p2",
-		"tsuru.io/iaas-id": "id-1",
-		"tsuru.io/m2":      "v2",
+		"tsuru.io/pool": "p2",
+		"tsuru.io/m2":   "v2",
 	})
 }
 
@@ -449,18 +439,15 @@ func (s *S) TestUpdateNodeWithIaaSIDPreviousEmpty(c *check.C) {
 		err := s.p.AddNode(context.TODO(), provision.AddNodeOptions{
 			Address: "my-node-addr",
 			Pool:    "p2",
-			IaaSID:  "valid-iaas-id",
 		})
 		c.Assert(err, check.IsNil)
 	})
 	nodes, err := s.p.ListNodes(context.TODO(), nil)
 	c.Assert(err, check.IsNil)
 	c.Assert(nodes, check.HasLen, 1)
-	c.Assert(nodes[0].IaaSID(), check.Equals, "valid-iaas-id")
 	c.Assert(nodes[0].Metadata(), check.DeepEquals, map[string]string{
-		"tsuru.io/pool":    "p2",
-		"tsuru.io/iaas-id": "valid-iaas-id",
-		"tsuru.io/m1":      "v1",
+		"tsuru.io/pool": "p2",
+		"tsuru.io/m1":   "v1",
 	})
 }
 

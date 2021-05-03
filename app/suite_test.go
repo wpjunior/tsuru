@@ -22,7 +22,6 @@ import (
 	"github.com/tsuru/tsuru/provision"
 	"github.com/tsuru/tsuru/provision/pool"
 	"github.com/tsuru/tsuru/provision/provisiontest"
-	"github.com/tsuru/tsuru/queue"
 	"github.com/tsuru/tsuru/router/rebuild"
 	"github.com/tsuru/tsuru/router/routertest"
 	"github.com/tsuru/tsuru/servicemanager"
@@ -127,7 +126,6 @@ func (s *S) SetUpTest(c *check.C) {
 	routertest.HCRouter.Reset()
 	routertest.TLSRouter.Reset()
 	routertest.OptsRouter.Reset()
-	queue.ResetQueue()
 	rebuild.Shutdown(context.Background())
 	routertest.FakeRouter.Reset()
 	routertest.HCRouter.Reset()

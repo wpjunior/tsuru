@@ -509,7 +509,7 @@ func (p *FakeProvisioner) AddNode(ctx context.Context, opts provision.AddNodeOpt
 		return errors.New("fake node already exists")
 	}
 	p.nodes[opts.Address] = FakeNode{
-		ID:       opts.IaaSID,
+		ID:       opts.Address,
 		Addr:     opts.Address,
 		PoolName: opts.Pool,
 		Meta:     metadata,
