@@ -21,6 +21,7 @@ import (
 	"github.com/tsuru/tsuru/event"
 	appTypes "github.com/tsuru/tsuru/types/app"
 	provTypes "github.com/tsuru/tsuru/types/provision"
+	routerTypes "github.com/tsuru/tsuru/types/router"
 )
 
 const (
@@ -235,10 +236,10 @@ type App interface {
 	GetUpdatePlatform() bool
 
 	GetRouters() []appTypes.AppRouter
-
 	GetPool() string
 
 	GetTeamOwner() string
+	GetTeamsName() []string
 
 	SetQuotaInUse(int) error
 
@@ -384,6 +385,19 @@ type ExecutableProvisioner interface {
 type LogsProvisioner interface {
 	ListLogs(app appTypes.App, args appTypes.ListLogArgs) ([]appTypes.Applog, error)
 	WatchLogs(app appTypes.App, args appTypes.ListLogArgs) (appTypes.LogWatcher, error)
+}
+
+type RouterOptions struct {
+	App          appTypes.App
+	RouterKind   string
+	RouterConfig routerTypes.ConfigGetter
+	InstanceOpts map[string]string
+}
+
+// Routable Provisioner is an provisioner that owns  owned model of routing
+type RoutableProvisioner interface {
+	CreateRouter(opts RouterOptions) error
+	UpdateRouter(opts RouterOptions) error
 }
 
 // SleepableProvisioner is a provisioner that allows putting applications to

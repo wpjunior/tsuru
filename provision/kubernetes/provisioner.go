@@ -80,6 +80,7 @@ var (
 	_ provision.HCProvisioner            = &kubernetesProvisioner{}
 	_ provision.VersionsProvisioner      = &kubernetesProvisioner{}
 	_ provision.LogsProvisioner          = &kubernetesProvisioner{}
+	_ provision.RoutableProvisioner      = &kubernetesProvisioner{}
 	_ cluster.ClusteredProvisioner       = &kubernetesProvisioner{}
 	_ cluster.ClusterProvider            = &kubernetesProvisioner{}
 	// _ provision.OptionalLogsProvisioner  = &kubernetesProvisioner{}
