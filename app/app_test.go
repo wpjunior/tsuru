@@ -2444,7 +2444,7 @@ type logDisabledFakeProvisioner struct {
 	provisiontest.FakeProvisioner
 }
 
-func (p *logDisabledFakeProvisioner) LogsEnabled(app provision.App) (bool, string, error) {
+func (p *logDisabledFakeProvisioner) LogsEnabled(app *appTypes.App) (bool, string, error) {
 	return false, "my doc msg", nil
 }
 
