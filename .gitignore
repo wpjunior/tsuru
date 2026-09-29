@@ -19,3 +19,4 @@ integration/fixtures/multiversion-python-app/version_hash.txt
 # It may change according the use setup, so we should not track it.
 etc/buildkitd.toml
 etc/tsurud.conf
+etc/ui-config.js

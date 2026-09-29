@@ -480,6 +480,13 @@ func RunServer(dry bool) http.Handler {
 	if !dry {
 		n.Use(observability.NewMiddleware())
 	}
+	ui, err := uiHandlerFromConfig()
+	if err != nil {
+		fatal(err)
+	}
+	if ui != nil {
+		registerUI(m, ui)
+	}
 	n.UseHandler(m)
 	n.Use(&flushingWriterMiddleware{
 		latencyConfig: map[string]time.Duration{
